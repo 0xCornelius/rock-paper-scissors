@@ -12,21 +12,29 @@ const localChainId = "31337";
 //     }, ms)
 //   );
 
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deploy } = deployments;
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  await deploy("YourContract", {
+  const minRoundBets = 1;
+  const args = [2016, "0x51861D418a62D3a7221B70783A1C948d270EEcb2", minRoundBets];
+
+  await deploy("RockPaperScissors", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    // args: [ "Hello", ethers.utils.parseEther("1.5") ],
+    args: args,
     log: true,
-    waitConfirmations: 5,
+    waitConfirmations: 50,
   });
 
+  await delay(50000);
+
   // Getting a previously deployed contract
-  const YourContract = await ethers.getContract("YourContract", deployer);
+  const RockPaperScissors = await ethers.getContract("RockPaperScissors", deployer);
+
   /*  await YourContract.setPurpose("Hello");
   
     To take ownership of yourContract using the ownable library uncomment next line and add the 
@@ -64,16 +72,16 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
 
   // You can also Verify your contracts with Etherscan here...
   // You don't want to verify on localhost
-  // try {
-  //   if (chainId !== localChainId) {
-  //     await run("verify:verify", {
-  //       address: YourContract.address,
-  //       contract: "contracts/YourContract.sol:YourContract",
-  //       contractArguments: [],
-  //     });
-  //   }
-  // } catch (error) {
-  //   console.error(error);
-  // }
+  try {
+    if (chainId !== localChainId) {
+      await run("verify:verify", {
+        address: RockPaperScissors.address,
+        contract: "contracts/RockPaperScissors.sol:RockPaperScissors",
+        constructorArguments: args,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+  }
 };
-module.exports.tags = ["YourContract"];
+module.exports.tags = ["RockPaperScissors"];
