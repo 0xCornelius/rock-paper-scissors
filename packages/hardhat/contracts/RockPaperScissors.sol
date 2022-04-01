@@ -89,8 +89,7 @@ contract RockPaperScissors is VRFConsumerBaseV2 {
             false,
             true
         );
-        ++roundBets;
-        if (roundBets >= minRoundBets) {
+        if (++roundBets >= minRoundBets) {
             requestRandomWords();
         }
     }
