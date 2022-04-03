@@ -9,7 +9,7 @@ import { Button, Card, DatePicker, Divider, Input, Progress, Slider, Spin, Switc
  * @param {*} readContracts contracts from current chain already pre-loaded using ethers contract module. More here https://docs.ethers.io/v5/api/contract/contract/
  * @returns react component
  **/
-function Home({ yourLocalBalance, readContracts, tx, writeContracts }) {
+function Home({ yourLocalBalance, readContracts, tx, writeContracts, address }) {
 
   const [selectedOption, setSelectedOption] = useState();
 
@@ -31,25 +31,25 @@ function Home({ yourLocalBalance, readContracts, tx, writeContracts }) {
     },
   ]
 
+  const getBetFromId = (id) => {
+    const betInfo = options.find(op => op.id === id);
+    return betInfo ? betInfo.name + " " + betInfo.icon : ""
+  }
 
   const currentRound = useContractReader(readContracts, "RockPaperScissors", "getCurrentRound");
-  console.log(currentRound && currentRound.toNumber);
+  const userBets = useContractReader(readContracts, "RockPaperScissors", "getUserBets(address)", [address]);
+  const roundResults = useContractReader(readContracts, "RockPaperScissors", "getRoundResults");
+  const roundResultsMap = roundResults && Object.assign({}, ...roundResults.map((round) => ({ [round.round]: round.result })));
 
   const shoot = async () => {
-    const result = tx(writeContracts.RockPaperScissors.shoot(selectedOption, {value: ethers.utils.parseEther("0.01")}), update => {
-      console.log("📡 Transaction Update:", update);
-      if (update && (update.status === "confirmed" || update.status === 1)) {
-        console.log(" 🍾 Transaction " + update.hash + " finished!");
-        console.log(
-          " ⛽️ " +
-          update.gasUsed +
-          "/" +
-          (update.gasLimit || update.gas) +
-          " @ " +
-          parseFloat(update.gasPrice) / 1000000000 +
-          " gwei",
-        );
-      }
+    const result = tx(writeContracts.RockPaperScissors.shoot(selectedOption, { value: ethers.utils.parseEther("0.01") }), update => {
+    });
+    console.log("awaiting metamask/web3 confirm result...", result);
+    console.log(await result);
+  }
+
+  const claim = async (round) => {
+    const result = tx(writeContracts.RockPaperScissors.claimPrize(round), update => {
     });
     console.log("awaiting metamask/web3 confirm result...", result);
     console.log(await result);
@@ -86,7 +86,32 @@ function Home({ yourLocalBalance, readContracts, tx, writeContracts }) {
           </div>
         </div>
       </div>
-    </div>
+      <div style={{ border: "1px solid #cccccc", padding: 16, width: 400, margin: "auto", marginTop: 64 }}>
+        <h2>Your bets</h2>
+        <div>
+          <div>
+            <div className="user-bets-container" style={{ textAlign: "left" }}>
+              <div className="bets-row">
+                <span className="round bold">Round</span>
+                <span className="bet bold">Your bet</span>
+                <span className="result bold">Result</span>
+                <span className="claim bold">Claim</span>
+              </div>
+              {userBets && userBets.map((bet) =>
+                <div className="bets-row">
+                  <span className="round">{bet.round.toNumber()}</span>
+                  <span className="bet">{getBetFromId(bet.bet)}</span>
+                  <span className="result">{roundResultsMap && getBetFromId(roundResultsMap[bet.round])}</span>
+                  <span className="claim">{
+                    (roundResultsMap && bet.bet === roundResultsMap[bet.round]) ?
+                      <Button onClick={() => claim(bet.round)} type="primary" size="small" disabled={bet.claimed}>Claim</Button> : ""
+                  }</span>
+                </div>)}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div >
   );
 }
 

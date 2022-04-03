@@ -14,6 +14,11 @@ contract RockPaperScissors is VRFConsumerBaseV2 {
         bool exists;
     }
 
+    struct RoundResult {
+        uint256 round;
+        uint8 result;
+    }
+
     event RoundEnded(uint256 round, uint8 result);
 
     error RoundLost(uint8 userBet, uint8 roundResult, uint256 round);
@@ -98,7 +103,9 @@ contract RockPaperScissors is VRFConsumerBaseV2 {
         require(round < _currentRound.current(), "Round not done yet");
         UserBet memory userBet = getUserBet(round);
         uint8 roundResult = getRoundResult(round);
-        if (userBet.exists && userBet.bet == roundResult) {
+        if (userBet.exists && userBet.bet == roundResult && !userBet.claimed) {
+            // userBet.claimed = true;
+            (userBets[msg.sender][round]).claimed = true;
             (bool sent, bytes memory data) = msg.sender.call{
                 value: betAmount * 2
             }("");
@@ -194,6 +201,17 @@ contract RockPaperScissors is VRFConsumerBaseV2 {
     function getRoundResult(uint256 round) public view returns (uint8) {
         require(round < _currentRound.current(), "Round not ran yet.");
         return results[round];
+    }
+
+    function getRoundResults() public view returns (RoundResult[] memory) {
+        RoundResult[] memory roundResults = new RoundResult[](
+            _currentRound.current()
+        );
+        for (uint256 i; i < _currentRound.current(); ++i) {
+            uint8 roundResult = getRoundResult(i);
+            roundResults[i] = RoundResult(i, roundResult);
+        }
+        return roundResults;
     }
 
     function getCurrentRound() public view returns (uint256) {
